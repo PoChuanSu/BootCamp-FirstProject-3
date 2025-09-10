@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import "./style.css";
 
 const initialFacts = [
@@ -45,41 +46,153 @@ const CATEGORIES = [
 ];
 
 function App() {
-    const appTitle = "Today I Learned!";
+    const [showForm, setShowForm] = useState(false);
+    const [facts, setFacts] = useState([]);
+    const [currentCategory, setCurrentCategory] = useState("all");
+
+    useEffect(() => {
+        function getFacts() {
+            let filteredFacts;
+
+            if (currentCategory === "all") {
+                filteredFacts = initialFacts;
+            } else {
+                filteredFacts = initialFacts.filter(
+                    (fact) => fact.category === currentCategory
+                );
+            }
+
+            setFacts(filteredFacts);
+        }
+
+        getFacts();
+    }, [currentCategory]);
 
     return (
         <>
-            <header className="header">
-                <div className="logo">
-                    <img src="logo.jpg" alt="Today I Learned Logo" />
-                    <h1>{appTitle}</h1>
-                </div>
-
-                <button className="btn btn-large btn-open" type="button">
-                    Share a fact
-                </button>
-            </header>
-
-            <NewFactForm />
+            <Header showForm={showForm} setShowForm={setShowForm} />
+            {showForm ? (
+                <NewFactForm setFacts={setFacts} setShowForm={setShowForm} />
+            ) : null}
 
             <main className="main">
-                <CategoryFilter />
-                <FactList />
+                <CategoryFilter setCurrentCategory={setCurrentCategory} />
+                <FactList facts={facts} />
             </main>
         </>
     );
 }
 
-function NewFactForm() {
-    return <form className="fact-form">Fact Form</form>;
+function Header({ showForm, setShowForm }) {
+    const appTitle = "Today I Learned!";
+    return (
+        <header className="header">
+            <div className="logo">
+                <img src="logo.jpg" alt="Today I Learned Logo" />
+                <h1>{appTitle}</h1>
+            </div>
+
+            <button
+                className="btn btn-large btn-open"
+                type="button"
+                onClick={() => setShowForm((show) => !show)}
+            >
+                {showForm ? "Close" : "Share a fact"}
+            </button>
+        </header>
+    );
 }
 
-function CategoryFilter() {
-    return <aside>Category Filter</aside>;
+function NewFactForm({ setFacts, setShowForm }) {
+    const [text, setText] = useState("");
+    const [source, setSource] = useState("http://example.com");
+    const [category, setCategory] = useState("");
+
+    function handleSubmit(e) {
+        e.preventDefault();
+
+        if (text && source && category && text.length <= 200) {
+            const newFact = {
+                id: Math.round(Math.random() * 1000000),
+                text,
+                source,
+                category,
+                votesInteresting: 0,
+                votesMindblowing: 0,
+                votesFalse: 0,
+                createdIn: new Date().getFullYear,
+            };
+
+            setFacts((facts) => [...facts, newFact]);
+
+            setText("");
+            setSource("");
+            setCategory("");
+
+            setShowForm(false);
+        }
+    }
+
+    return (
+        <form className="fact-form" onSubmit={handleSubmit}>
+            <input
+                type="text"
+                placeholder="Share a fact with the world..."
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+            />
+            <span className="tag">{200 - text.length} left</span>
+            <input
+                type="text"
+                placeholder="Trustworthy source ..."
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+            />
+            <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+            >
+                <option value="">Choose category</option>
+                {CATEGORIES.map((cat) => (
+                    <option key={cat.name} value={cat.name}>
+                        {cat.name.toUpperCase()}
+                    </option>
+                ))}
+            </select>
+            <button className="btn btn-large">Post</button>
+        </form>
+    );
 }
 
-function FactList() {
-    const facts = initialFacts;
+function CategoryFilter({ setCurrentCategory }) {
+    return (
+        <aside>
+            <ul className="all-category">
+                <li className="category">
+                    <button
+                        className="btn btn-all-categories"
+                        onClick={() => setCurrentCategory("all")}
+                    >
+                        All
+                    </button>
+                </li>
+                {CATEGORIES.map((cat) => (
+                    <li key={cat.name} className="category">
+                        <button
+                            style={{ backgroundColor: cat.color }}
+                            className="btn btn-category"
+                            onClick={() => setCurrentCategory(cat.name)}
+                        >
+                            {cat.name}
+                        </button>
+                    </li>
+                ))}
+            </ul>
+        </aside>
+    );
+}
+
+function FactList({ facts }) {
     return (
         <section>
             <ul className="facts-list">
